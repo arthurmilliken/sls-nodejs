@@ -1,32 +1,27 @@
 'use strict';
-const AWS = require("aws-sdk");
-const lambda = new AWS.Lambda({
-  region: "us-west-2"
-});
+const Promise = require('bluebird')
+const AWS = require('aws-sdk')
+const lambda = new AWS.Lambda()
+lambda.invokeAsync = Promise.promisify(lambda.invoke)
 
 module.exports.echo = async (event, context) => {
   console.log('event:');
   console.log(JSON.stringify(event, null, 2));
   console.log('context:');
   console.log(JSON.stringify(context, null, 2))
+  
+  // Clone env
+  const env = JSON.parse(JSON.stringify(process.env));
+  env.AWS_ACCESS_KEY_ID = 'REDACTED'
+  env.AWS_SECRET_ACCESS_KEY = 'REDACTED'
+  env.AWS_SESSION_TOKEN = 'REDACTED'
   console.log('env:')
-  console.log(process.env);
-  return {
-    statusCode: 200,
-    body: JSON.stringify(
-      {
-        event: event,
-        context: context,
-        env: {
-          GLOBAL_API_KEY: process.env.GLOBAL_API_KEY,
-          ECHO_API_KEY: process.env.ECHO_API_KEY,
-        },
-        message: 'Go Serverless v1.0! Your function executed successfully!',
-      },
-      null,
-      2
-    ),
-  };
+  console.log(env)
+
+  const message = 'Go Serverless v1.0! Your function executed successfully!'
+  const payload = { event, context, env, message }
+
+  return { statusCode: 200, body: JSON.stringify(payload) };
 };
 
 module.exports.hello = async (event) => {
@@ -49,32 +44,36 @@ module.exports.hello = async (event) => {
   };
 };
 
-module.exports.callEcho = (event, context, callback) => {
+module.exports.callEcho = async (event, context) => {
   console.log('callEcho:');
   console.log(JSON.stringify(event, null, 2));
+
   const payload = {
     from: 'callEcho',
     to: 'echo',
     message: 'Hello World!'
   };
-
   const params = {
     FunctionName: "sls-nodejs-dev-echo",
     InvocationType: "Event",
     Payload: JSON.stringify(payload),
   };
 
-  console.log('callEcho:before lambda')
-  lambda.invoke(params, (error, data) => {
-    console.log('callEcho:lambda.invoke:callback');
-    if (error) {
-      console.error(error.message);
-      callback(error);
-    } else if (data) {
-      console.log('returned from echo:')
-      console.log(data);
-      callback(null, { success: true });
+  try {
+    const result = await lambda.invokeAsync(params);
+    console.log('result:')
+    console.log(result)
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        function: 'callEcho',
+        message: 'success'
+      })
     }
-  });
-  console.log('callEcho:after lambda');
+  }
+  catch (err) {
+    console.error(error)
+    throw err
+  }
 }
+
