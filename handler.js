@@ -45,7 +45,9 @@ module.exports.hello = async (event) => {
 };
 
 module.exports.callEcho = async (event, context) => {
-  console.log('callEcho:');
+  console.log('event:')
+  console.log(JSON.stringify(event, null, 2));
+  console.log('context:')
   console.log(JSON.stringify(event, null, 2));
 
   const payload = {
@@ -61,7 +63,7 @@ module.exports.callEcho = async (event, context) => {
 
   try {
     const result = await lambda.invokeAsync(params);
-    console.log('result:')
+    console.log('result from echo lambda:')
     console.log(result)
     return {
       statusCode: 200,
