@@ -1,8 +1,6 @@
 'use strict';
-const Promise = require('bluebird')
 const AWS = require('aws-sdk')
 const lambda = new AWS.Lambda()
-lambda.invokeAsync = Promise.promisify(lambda.invoke)
 
 module.exports.echo = async (event, context) => {
   console.log('event:');
@@ -62,7 +60,7 @@ module.exports.callEcho = async (event, context) => {
   };
 
   try {
-    const result = await lambda.invokeAsync(params);
+    const result = await lambda.invoke(params).promise();
     console.log('result from echo lambda:')
     console.log(result)
     return {
